@@ -26,7 +26,7 @@ pub struct Vector3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub _pad: f32
+    pub _pad: f32,
 }
 
 fn main() {
@@ -70,8 +70,8 @@ fn main() {
             dst_subpass: Default::default(),
             src_stage_mask: vk::PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             src_access_mask: Default::default(),
-            dst_access_mask: vk::ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                vk::ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            dst_access_mask: vk::ACCESS_COLOR_ATTACHMENT_READ_BIT
+                | vk::ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             dst_stage_mask: vk::PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         };
         let subpass = vk::SubpassDescription {
@@ -198,9 +198,8 @@ fn main() {
         let vertex_input_buffer = base.device
             .create_buffer(&vertex_input_buffer_info, None)
             .unwrap();
-        let vertex_input_buffer_memory_req = base.device.get_buffer_memory_requirements(
-            vertex_input_buffer,
-        );
+        let vertex_input_buffer_memory_req = base.device
+            .get_buffer_memory_requirements(vertex_input_buffer);
         let vertex_input_buffer_memory_index =
             find_memorytype_index(
                 &vertex_input_buffer_memory_req,
@@ -240,7 +239,7 @@ fn main() {
             x: 1.0,
             y: 1.0,
             z: 1.0,
-            _pad: 0.0
+            _pad: 0.0,
         };
         let uniform_color_buffer_info = vk::BufferCreateInfo {
             s_type: vk::StructureType::BufferCreateInfo,
@@ -255,9 +254,8 @@ fn main() {
         let uniform_color_buffer = base.device
             .create_buffer(&uniform_color_buffer_info, None)
             .unwrap();
-        let uniform_color_buffer_memory_req = base.device.get_buffer_memory_requirements(
-            uniform_color_buffer,
-        );
+        let uniform_color_buffer_memory_req = base.device
+            .get_buffer_memory_requirements(uniform_color_buffer);
         let uniform_color_buffer_memory_index =
             find_memorytype_index(
                 &uniform_color_buffer_memory_req,
@@ -388,89 +386,97 @@ fn main() {
             .bind_image_memory(texture_image, texture_memory, 0)
             .expect("Unable to bind depth image memory");
 
-
-
-        record_submit_commandbuffer(&base.device,
-                                    base.setup_command_buffer,
-                                    base.present_queue,
-                                    &[vk::PIPELINE_STAGE_TOP_OF_PIPE_BIT],
-                                    &[],
-                                    &[],
-                                    |device, texture_command_buffer| {
-            let texture_barrier = vk::ImageMemoryBarrier {
-                s_type: vk::StructureType::ImageMemoryBarrier,
-                p_next: ptr::null(),
-                src_access_mask: Default::default(),
-                dst_access_mask: vk::ACCESS_TRANSFER_WRITE_BIT,
-                old_layout: vk::ImageLayout::Undefined,
-                new_layout: vk::ImageLayout::TransferDstOptimal,
-                src_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
-                dst_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
-                image: texture_image,
-                subresource_range: vk::ImageSubresourceRange {
-                    aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
-                    base_mip_level: 0,
-                    level_count: 1,
-                    base_array_layer: 0,
-                    layer_count: 1,
-                },
-            };
-            device.cmd_pipeline_barrier(texture_command_buffer,
-                                        vk::PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                                        vk::PIPELINE_STAGE_TRANSFER_BIT,
-                                        vk::DependencyFlags::empty(),
-                                        &[],
-                                        &[],
-                                        &[texture_barrier]);
-            let buffer_copy_regions = [vk::BufferImageCopy {
-                                           image_subresource: vk::ImageSubresourceLayers {
-                                               aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
-                                               mip_level: 0,
-                                               base_array_layer: 0,
-                                               layer_count: 1,
-                                           },
-                                           image_extent: vk::Extent3D {
-                                               width: image_dimensions.0,
-                                               height: image_dimensions.1,
-                                               depth: 1,
-                                           },
-                                           buffer_offset: 0,
-                                           // FIX ME
-                                           buffer_image_height: 0,
-                                           buffer_row_length: 0,
-                                           image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
-                                       }];
-            device.cmd_copy_buffer_to_image(texture_command_buffer,
-                                            image_buffer,
-                                            texture_image,
-                                            vk::ImageLayout::TransferDstOptimal,
-                                            &buffer_copy_regions);
-            let texture_barrier_end = vk::ImageMemoryBarrier {
-                s_type: vk::StructureType::ImageMemoryBarrier,
-                p_next: ptr::null(),
-                src_access_mask: vk::ACCESS_TRANSFER_WRITE_BIT,
-                dst_access_mask: vk::ACCESS_SHADER_READ_BIT,
-                old_layout: vk::ImageLayout::TransferDstOptimal,
-                new_layout: vk::ImageLayout::ShaderReadOnlyOptimal,
-                src_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
-                dst_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
-                image: texture_image,
-                subresource_range: vk::ImageSubresourceRange {
-                    aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
-                    base_mip_level: 0,
-                    level_count: 1,
-                    base_array_layer: 0,
-                    layer_count: 1,
-                },
-            };
-            device.cmd_pipeline_barrier(texture_command_buffer,
-                                        vk::PIPELINE_STAGE_TRANSFER_BIT,
-                                        vk::PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                        vk::DependencyFlags::empty(),
-                                        &[],
-                                        &[],
-                                        &[texture_barrier_end]);
-        });
+        record_submit_commandbuffer(
+            &base.device,
+            base.setup_command_buffer,
+            base.present_queue,
+            &[vk::PIPELINE_STAGE_TOP_OF_PIPE_BIT],
+            &[],
+            &[],
+            |device, texture_command_buffer| {
+                let texture_barrier = vk::ImageMemoryBarrier {
+                    s_type: vk::StructureType::ImageMemoryBarrier,
+                    p_next: ptr::null(),
+                    src_access_mask: Default::default(),
+                    dst_access_mask: vk::ACCESS_TRANSFER_WRITE_BIT,
+                    old_layout: vk::ImageLayout::Undefined,
+                    new_layout: vk::ImageLayout::TransferDstOptimal,
+                    src_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
+                    dst_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
+                    image: texture_image,
+                    subresource_range: vk::ImageSubresourceRange {
+                        aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
+                        base_mip_level: 0,
+                        level_count: 1,
+                        base_array_layer: 0,
+                        layer_count: 1,
+                    },
+                };
+                device.cmd_pipeline_barrier(
+                    texture_command_buffer,
+                    vk::PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    vk::PIPELINE_STAGE_TRANSFER_BIT,
+                    vk::DependencyFlags::empty(),
+                    &[],
+                    &[],
+                    &[texture_barrier],
+                );
+                let buffer_copy_regions = [
+                    vk::BufferImageCopy {
+                        image_subresource: vk::ImageSubresourceLayers {
+                            aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
+                            mip_level: 0,
+                            base_array_layer: 0,
+                            layer_count: 1,
+                        },
+                        image_extent: vk::Extent3D {
+                            width: image_dimensions.0,
+                            height: image_dimensions.1,
+                            depth: 1,
+                        },
+                        buffer_offset: 0,
+                        // FIX ME
+                        buffer_image_height: 0,
+                        buffer_row_length: 0,
+                        image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
+                    },
+                ];
+                device.cmd_copy_buffer_to_image(
+                    texture_command_buffer,
+                    image_buffer,
+                    texture_image,
+                    vk::ImageLayout::TransferDstOptimal,
+                    &buffer_copy_regions,
+                );
+                let texture_barrier_end = vk::ImageMemoryBarrier {
+                    s_type: vk::StructureType::ImageMemoryBarrier,
+                    p_next: ptr::null(),
+                    src_access_mask: vk::ACCESS_TRANSFER_WRITE_BIT,
+                    dst_access_mask: vk::ACCESS_SHADER_READ_BIT,
+                    old_layout: vk::ImageLayout::TransferDstOptimal,
+                    new_layout: vk::ImageLayout::ShaderReadOnlyOptimal,
+                    src_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
+                    dst_queue_family_index: vk::VK_QUEUE_FAMILY_IGNORED,
+                    image: texture_image,
+                    subresource_range: vk::ImageSubresourceRange {
+                        aspect_mask: vk::IMAGE_ASPECT_COLOR_BIT,
+                        base_mip_level: 0,
+                        level_count: 1,
+                        base_array_layer: 0,
+                        layer_count: 1,
+                    },
+                };
+                device.cmd_pipeline_barrier(
+                    texture_command_buffer,
+                    vk::PIPELINE_STAGE_TRANSFER_BIT,
+                    vk::PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    vk::DependencyFlags::empty(),
+                    &[],
+                    &[],
+                    &[texture_barrier_end],
+                );
+            },
+        );
 
         let sampler_info = vk::SamplerCreateInfo {
             s_type: vk::StructureType::SamplerCreateInfo,
@@ -563,7 +569,6 @@ fn main() {
             binding_count: desc_layout_bindings.len() as u32,
             p_bindings: desc_layout_bindings.as_ptr(),
         };
-
 
         let desc_set_layouts = [
             base.device
@@ -856,13 +861,14 @@ fn main() {
 
         let graphic_pipeline = graphics_pipelines[0];
 
-
         base.render_loop(|| {
             let present_index = base.swapchain_loader
-                .acquire_next_image_khr(base.swapchain,
-                                        std::u64::MAX,
-                                        base.present_complete_semaphore,
-                                        vk::Fence::null())
+                .acquire_next_image_khr(
+                    base.swapchain,
+                    std::u64::MAX,
+                    base.present_complete_semaphore,
+                    vk::Fence::null(),
+                )
                 .unwrap();
             let clear_values = [
                 vk::ClearValue {
@@ -890,43 +896,59 @@ fn main() {
                 clear_value_count: clear_values.len() as u32,
                 p_clear_values: clear_values.as_ptr(),
             };
-            record_submit_commandbuffer(&base.device,
-                                        base.draw_command_buffer,
-                                        base.present_queue,
-                                        &[vk::PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT],
-                                        &[base.present_complete_semaphore],
-                                        &[base.rendering_complete_semaphore],
-                                        |device, draw_command_buffer| {
-                device.cmd_begin_render_pass(draw_command_buffer,
-                                             &render_pass_begin_info,
-                                             vk::SubpassContents::Inline);
-                device.cmd_bind_descriptor_sets(draw_command_buffer,
-                                                vk::PipelineBindPoint::Graphics,
-                                                pipeline_layout,
-                                                0,
-                                                &descriptor_sets[..],
-                                                &[]);
-                device.cmd_bind_pipeline(draw_command_buffer,
-                                         vk::PipelineBindPoint::Graphics,
-                                         graphic_pipeline);
-                device.cmd_set_viewport(draw_command_buffer, 0, &viewports);
-                device.cmd_set_scissor(draw_command_buffer, &scissors);
-                device
-                    .cmd_bind_vertex_buffers(draw_command_buffer, 0, &[vertex_input_buffer], &[0]);
-                device.cmd_bind_index_buffer(draw_command_buffer,
-                                             index_buffer,
-                                             0,
-                                             vk::IndexType::Uint32);
-                device.cmd_draw_indexed(draw_command_buffer,
-                                        index_buffer_data.len() as u32,
-                                        1,
-                                        0,
-                                        0,
-                                        1);
-                // Or draw without the index buffer
-                // device.cmd_draw(draw_command_buffer, 3, 1, 0, 0);
-                device.cmd_end_render_pass(draw_command_buffer);
-            });
+            record_submit_commandbuffer(
+                &base.device,
+                base.draw_command_buffer,
+                base.present_queue,
+                &[vk::PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT],
+                &[base.present_complete_semaphore],
+                &[base.rendering_complete_semaphore],
+                |device, draw_command_buffer| {
+                    device.cmd_begin_render_pass(
+                        draw_command_buffer,
+                        &render_pass_begin_info,
+                        vk::SubpassContents::Inline,
+                    );
+                    device.cmd_bind_descriptor_sets(
+                        draw_command_buffer,
+                        vk::PipelineBindPoint::Graphics,
+                        pipeline_layout,
+                        0,
+                        &descriptor_sets[..],
+                        &[],
+                    );
+                    device.cmd_bind_pipeline(
+                        draw_command_buffer,
+                        vk::PipelineBindPoint::Graphics,
+                        graphic_pipeline,
+                    );
+                    device.cmd_set_viewport(draw_command_buffer, 0, &viewports);
+                    device.cmd_set_scissor(draw_command_buffer, &scissors);
+                    device.cmd_bind_vertex_buffers(
+                        draw_command_buffer,
+                        0,
+                        &[vertex_input_buffer],
+                        &[0],
+                    );
+                    device.cmd_bind_index_buffer(
+                        draw_command_buffer,
+                        index_buffer,
+                        0,
+                        vk::IndexType::Uint32,
+                    );
+                    device.cmd_draw_indexed(
+                        draw_command_buffer,
+                        index_buffer_data.len() as u32,
+                        1,
+                        0,
+                        0,
+                        1,
+                    );
+                    // Or draw without the index buffer
+                    // device.cmd_draw(draw_command_buffer, 3, 1, 0, 0);
+                    device.cmd_end_render_pass(draw_command_buffer);
+                },
+            );
             //let mut present_info_err = mem::uninitialized();
             let present_info = vk::PresentInfoKHR {
                 s_type: vk::StructureType::PresentInfoKhr,
@@ -948,14 +970,10 @@ fn main() {
             base.device.destroy_pipeline(pipeline, None);
         }
         base.device.destroy_pipeline_layout(pipeline_layout, None);
-        base.device.destroy_shader_module(
-            vertex_shader_module,
-            None,
-        );
-        base.device.destroy_shader_module(
-            fragment_shader_module,
-            None,
-        );
+        base.device
+            .destroy_shader_module(vertex_shader_module, None);
+        base.device
+            .destroy_shader_module(fragment_shader_module, None);
         base.device.free_memory(image_buffer_memory, None);
         base.device.destroy_buffer(image_buffer, None);
         base.device.free_memory(texture_memory, None);
@@ -968,10 +986,8 @@ fn main() {
         base.device.free_memory(vertex_input_buffer_memory, None);
         base.device.destroy_buffer(vertex_input_buffer, None);
         for &descriptor_set_layout in desc_set_layouts.iter() {
-            base.device.destroy_descriptor_set_layout(
-                descriptor_set_layout,
-                None,
-            );
+            base.device
+                .destroy_descriptor_set_layout(descriptor_set_layout, None);
         }
         base.device.destroy_descriptor_pool(descriptor_pool, None);
         base.device.destroy_sampler(sampler, None);
