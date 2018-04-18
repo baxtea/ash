@@ -62,4 +62,26 @@ impl DebugReport {
             _ => Err(err_code),
         }
     }
+
+    pub unsafe fn debug_report_message_ext(
+        &self,
+        flags: vk::DebugReportFlagsEXT,
+        object_type: vk::DebugReportObjectTypeEXT,
+        object: vk::uint64_t,
+        location: vk::size_t,
+        message_code: vk::int32_t,
+        p_layer_prefix: *const vk::c_char,
+        p_message: *const vk::c_char,
+    ) {
+        self.debug_report_fn.debug_report_message_ext(
+            self.handle,
+            flags,
+            object_type,
+            object,
+            location,
+            message_code,
+            p_layer_prefix,
+            p_message,
+        );
+    }
 }
